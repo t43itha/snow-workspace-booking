@@ -1,0 +1,110 @@
+To build a standout [ServiceNow](https://www.servicenow.com/) developer portfolio using your [Personal Developer Instance (PDI)](https://www.igmguru.com/blog/servicenow-developer-instance), you should focus on building custom applications that replace spreadsheets, automating routine administrative tasks, and integrating external data sources. Hiring managers care less about generic demo data and more about your ability to design real-world, scalable architecture. [1, 2, 3, 4] 
+
+[Project Portfolio Management - ServiceNow](https://www.servicenow.com/products/project-portfolio-management.html)
+[Digital Portfolio Management overview - YouTube](https://www.youtube.com/watch?v=gz9bLM1nkf8)
+
+------------------------------
+## 🚀 1. Custom App: Office Equipment & Workspace Booker
+A classic scoped application that demonstrates your core Certified Application Developer (CAD) capabilities. [5] 
+
+* The Business Problem: A company uses messy Excel sheets to track desk bookings, loaner laptops, and conference rooms.
+* What to Build:
+* Create a Scoped Application with custom tables inheriting from the task table (x_custom_workspace_booking).
+   * Design an interactive portal page using Service Portal or Employee Center to let users book items.
+   * Write a Script Include and a Client Script to prevent double-booking the same asset for overlapping times.
+   * Build a Flow Designer workflow that routes high-value requests (like booking a modern boardroom) to a manager for approval. [6, 7, 8, 9, 10] 
+
+## 🔌 2. Integration: Weather-Driven Facilities Maintenance
+Integrations are highly prized by employers because they show you understand how ServiceNow communicates with the outside world. [1, 6, 11] 
+
+* The Business Problem: Facilities teams are often reactive, responding to storm damage or heatwaves only after problems break out.
+* What to Build:
+* Set up a REST Message inside ServiceNow that triggers daily to fetch data from a free external API (e.g., OpenWeatherMap API).
+   * Write a Scheduled Script Execution (Scheduled Job) to parse the incoming JSON payload.
+   * Configure business logic: If a high-wind alert (>40mph) or extreme freeze is detected, automatically generate a proactive facilities Check Task against impacted CI locations in your CMDB. [3, 12, 13, 14] 
+
+## 🛠️ 3. Platform Admin: Automated System Health Tool
+This project proves your grasp of platform administration, logging, and performance maintenance. [12] 
+
+* The Business Problem: During platform upgrades or active development, tracking skipped records or system errors via manual inspection is incredibly tedious. [12] 
+* What to Build:
+* Build a customized Visual Task Board (VTB) or Workspace Dashboard that pulls data dynamically from the system log or the Upgrade History table.
+   * Write an advanced Business Rule that prevents junior developers from creating an Update Set with a duplicate name or an empty description.
+   * Implement an automated Flow Designer mail script that notifies the engineering team when high-severity error logs spike past a specific threshold. [3, 12, 15] 
+
+## 🤖 4. AI & Automation: Smart Virtual Agent HR Portal
+Showcase modern features like agentic workflows, conversational interfaces, and automated employee experiences. [3, 7] 
+
+* The Business Problem: HR support desks are overwhelmed by routine inquiries regarding company policies, medical claims, or leave requests. [1, 7] 
+* What to Build:
+* Build a custom portal theme using the [Digital Portfolio Management workspace templates](https://www.servicenow.com/docs/r/it-service-management/digital-portfolio-management/dpm-enterprise-portfolio-templates.html).
+   * Design a Virtual Agent conversation flow that walks a user through submitting a medical foundation reimbursement request.
+   * Connect the Virtual Agent directly to a custom Knowledge Base (KB) article. Use contextual search so that the AI automatically presents the right documentation before forcing the user to create a ticket. [1, 3, 7, 16] 
+
+------------------------------
+## 📂 How to Present Your Portfolio to Hiring Managers
+
+* Connect to GitHub: Link your PDI application scopes directly to a public GitHub repository using the native [ServiceNow Source Control integration](https://medium.com/@nadasmith/linking-applications-built-in-servicenow-pdi-to-github-15c98e020003). This provides a verifiable way for technical leads to review your JavaScript, Business Rules, and Script Includes. [4, 12, 17, 18] 
+* Record Loom Demos: Don't rely on people logging into your PDI. Instead, record short 2-minute video demonstrations showcasing the user experience, your Flow Designer layout, and your code execution. [4, 12] 
+* Document the Architecture: Create a simple documentation page (using GitHub Pages or Notion) outlining the Problem Statement, Data Schema (Tables/Relationships), and the Business Value your solution provides. [18, 19] 
+
+
+
+Connecting your Personal Developer Instance (PDI) to GitHub lets you back up your custom applications, create a clean portfolio, and showcase your actual code to hiring managers. [1] 
+## Step 1: Create a Repository on GitHub [2] 
+Before configuring ServiceNow, you need a blank repository to receive your code.
+
+   1. Log into your GitHub account.
+   2. Click New to create a repository.
+   3. Name your repository (e.g., servicenow-workspace-booking).
+   4. Set the visibility to Public (crucial for sharing with hiring managers).
+   5. Important: Leave "Add a README file", ".gitignore", and "Choose a license" unchecked. The repository must be completely empty.
+   6. Copy the Repository URL (e.g., https://github.com). [3, 4, 5, 6, 7] 
+
+------------------------------
+## Step 2: Generate a GitHub Personal Access Token (PAT) [8] 
+ServiceNow cannot log into GitHub using your standard password. You must generate a secure token. [9, 10] 
+
+   1. In GitHub, click your profile picture (top right) ➔ Settings.
+   2. Scroll down on the left menu and click Developer settings.
+   3. Select Personal access tokens ➔ Tokens (classic).
+   4. Click Generate new token ➔ Generate new token (classic).
+   5. Give it a clear note (e.g., ServiceNow PDI Connection).
+   6. Check the repo scope checkbox (this grants write access to your repositories).
+   7. Scroll to the bottom and click Generate token.
+   8. Copy the token immediately. You will never see it again once you close the page. [11, 12, 13, 14, 15] 
+
+------------------------------
+## Step 3: Create a Credential Record in ServiceNow
+Now, you need to store your GitHub token securely inside your PDI.
+
+   1. Log into your ServiceNow PDI.
+   2. In the Application Navigator, search for Connections & Credentials ➔ Credentials.
+   3. Click New.
+   4. Select Basic Auth Credentials.
+   5. Fill out the form fields exactly as follows:
+   * Name: GitHub Credentials
+      * User name: Your GitHub username (case-sensitive)
+      * Password: Paste the Personal Access Token (PAT) you copied in Step 2. [16, 17, 18] 
+   6. Click Submit.
+
+------------------------------
+## Step 4: Link Your Scoped App to GitHub
+With the security clearance in place, you can now link your custom application.
+
+   1. In ServiceNow, navigate to System Applications ➔ Studio.
+   2. Select the Scoped Application you want to link.
+   3. Look at the top left menu of Studio and click Source Control ➔ Link to Source Control. [19] 
+   4. Complete the configuration form:
+   * URL: Paste your GitHub Repository URL from Step 1.
+      * Credential: Click the magnifying glass and select your GitHub Credentials record.
+      * Branch: Leave this as master or main.
+      * Commit comment: Type a starting message like Initial PDI backup. [20] 
+   5. Click Link to Source Control. [21] 
+
+Once the progress bar finishes loading, your entire application structure, configurations, and JavaScript files will be pushed to your GitHub repository automatically.
+------------------------------
+## 🔄 How to Push New Updates
+As you continue coding and developing your app in Studio, your changes will not update on GitHub automatically. Whenever you hit a milestone, click Source Control ➔ Commit Changes inside Studio to push your latest progress to your public portfolio repository. [22, 23] 
+Would you like to map out the table relationships for your first custom application, or do you need help troubleshooting a connection error?
+

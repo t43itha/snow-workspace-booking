@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# ServiceNow SDK build output
+dist/
+.now/
+@types/
+
+# SDK auth / local env (never commit credentials)
+.now-auth/
+*.env
+.env
+
+# OS / editor
+Thumbs.db
+.DS_Store
+
+# Local setup helpers
+.setup/

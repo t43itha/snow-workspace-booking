@@ -1,0 +1,2886 @@
+Vibe Coding with Claude Code + ServiceNow SDK (https://www.servicenow.com/community/developer-advocate-blog/building-servicenow-apps-via-claude-code-and-the-servicenow-sdk/ba-p/3525677)
+ 
+
+This is a series of short episodes (around three minutes each) that walk you through building native ServiceNow apps from your terminal using Claude Code and the ServiceNow SDK. Each episode covers one focused topic, from initial setup through deploying real applications and building custom tooling. You can watch the videos or just read through everything right here on this page.
+
+ 
+
+Table of Contents
+Group 0: Intro
+Intro video
+Group 1: Getting Started
+What is Claude Code and how to install it
+What is the ServiceNow SDK
+SDK vs Studio: why switch?
+Your local dev environment setup
+Getting started with SDK from Build Agent
+Setting up your credentials
+Getting started with SDK from scratch
+Reading and understanding the SDK project structure
+Group 2: Core Workflow
+GDD or PRD to start
+CLAUDE.md and project-level context files
+What are Claude Code skills (and how to write your own)?
+The ServiceNow SDK skills plugin (and what it teaches your agent)
+How to write good prompts for Claude Code
+When to use plan mode
+Opus vs Sonnet (and cost/token awareness)
+Plan tasks, then plan execution, then execute
+Debugging with Claude Code
+Group 3: Git + Deploy
+What is git
+Setting up git
+GitHub commit and push
+Branches
+Pull requests
+Work trees
+Rolling back when needed
+SDK build + deploy
+now-sdk command aliases: create, init, deploy, install
+Deploying to multiple instances
+Group 4: Custom Tooling + Automation
+Slash commands explained
+Building your own slash commands from scratch
+Issue finder command
+Issue interview command
+A command to tackle all issues with an agent team (and close them)
+Group 5: Leveling Up
+Move from vibe coding to agent orchestration
+Use Claude Code for release notes and Teams messages
+From prototype to production
+ 
+
+ 
+
+Group 0: Introduction
+ 
+
+Intro video
+ 
+
+
+ 
+
+I'm Earl Duque, Developer Advocate at ServiceNow. This series is about building native ServiceNow apps from your terminal using the ServiceNow SDK and Claude Code.
+
+ 
+
+If you've been building ServiceNow apps the traditional way (Studio, the browser, clicking through forms), this series is for you. We're going from zero to deploying real apps, all from your local machine, all through code.
+
+ 
+
+Here's the big picture: ServiceNow open-sourced a set of build skills that let coding agents like Claude Code create native ServiceNow apps the way a ServiceNow developer would. Your agent knows what platform objects to build, how to structure a scoped app, and how to follow ServiceNow best practices. You write prompts, Claude Code writes the app, and the SDK deploys it straight to your instance.
+
+ 
+
+  THE TRADITIONAL WAY          THE NEW WAY
+
+  ┌───────────────────┐         ┌───────────────────┐
+  │  Open browser     │         │  Open terminal    │
+  │  Log into instance│         │  Write a prompt   │
+  │  Open Studio      │         │  Claude Code +    │
+  │  Click through    │         │    SDK handles    │
+  │    forms          │         │    the rest       │
+  │  Configure in UI  │         │  Deploy from CLI  │
+  └───────────────────┘         └───────────────────┘
+ 
+
+The flow works like this: you prompt Claude Code, the build skills tell it how ServiceNow works, the SDK compiles and deploys the result as a native scoped app on your instance.
+
+  ┌─────┐    ┌──────────────────────────┐    ┌─────┐    ┌────────────┐
+  │     │    │      Claude Code         │    │     │    │            │
+  │ You ├───>│                          ├───>│ SDK ├───>│ ServiceNow │
+  │     │    │  ┌───────────────────┐   │    │     │    │  Instance  │
+  └─────┘    │  │  ServiceNow       │   │    └─────┘    │            │
+   prompt    │  │  Build Skills     │   │     build     │  Native    │
+             │  │                   │   │   + deploy    │  Scoped    │
+             │  │  - Best practices │   │               │  App       │
+             │  │  - Platform rules │   │               │            │
+             │  │  - App structure  │   │               └────────────┘
+             │  └───────────────────┘   │
+             └──────────────────────────┘
+ 
+
+Across the episodes, we cover:
+
+Setting up your environment
+The SDK project structure
+How to write good prompts
+When to use plan mode
+Git workflows
+Deploying your app
+Building custom slash commands
+Agent orchestration
+ 
+
+  SERIES ROADMAP
+
+  Getting Started         Core Workflow
+  ├─ Claude Code setup    ├─ GDD/PRD to start
+  ├─ ServiceNow SDK       ├─ CLAUDE.md + context
+  ├─ SDK vs Studio        ├─ Skills
+  ├─ Dev environment      ├─ Writing good prompts
+  ├─ Credentials          ├─ Plan mode
+  └─ Project structure    └─ Debugging
+
+  Git + Deploy            Custom Tooling
+  ├─ Branches             ├─ Slash commands
+  ├─ Work trees           ├─ Issue finder
+  ├─ Commit + push        ├─ Issue interview
+  └─ SDK build + deploy   └─ Agent teams
+
+  Leveling Up
+  ├─ Agent orchestration
+  ├─ Release notes + Teams
+  └─ Prototype to production
+ 
+
+Each episode is about three minutes. Short, focused, and practical. Watch them in order or jump to whatever's relevant to you right now. And if I miss a topic, let me know in the comments and I'll add an episode.
+
+ 
+
+  EPISODE FORMAT
+
+  ┌────────────────────────────┐
+  │  ~ 3 minutes each          │
+  │  Focused on one topic      │
+  │  Practical, not theory     │
+  │  Watch in order or jump    │
+  │    to what you need        │
+  │  Request topics anytime    │
+  └────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+ 
+
+Group 1: Getting Started
+ 
+
+What is Claude Code and how to install it
+ 
+
+
+ 
+
+Claude Code is an AI coding agent built by Anthropic that lives in your terminal. It's not autocomplete. You give it instructions in plain language, and it reads your repo, runs commands, edits files, and follows multi-step plans. Think of it as a junior dev who's very fast, very thorough, and never gets tired.
+
+ 
+
+  CLAUDE CODE
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  AI coding agent from Anthropic         │
+  │                                         │
+  │  - Reads your entire repo               │
+  │  - Runs commands                        │
+  │  - Edits files                          │
+  │  - Follows multi-step instructions      │
+  │  - Writes platform-native code          │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+You've got several options for where to run it:
+
+ 
+
+Terminal CLI (the original)
+VS Code extension
+JetBrains plugin
+Desktop app for Mac and Windows
+Web version at claude.ai/code
+ 
+
+  WHERE CLAUDE CODE RUNS
+
+  ┌──────────┐ ┌──────────┐ ┌──────────┐
+  │ Terminal │ │ VS Code  │ │JetBrains │
+  │ CLI      │ │Extension │ │ Plugin   │
+  └──────────┘ └──────────┘ └──────────┘
+  ┌──────────┐ ┌────────────────────────┐
+  │ Desktop  │ │ Web (claude.ai/code)   │
+  │ App      │ │                        │
+  └──────────┘ └────────────────────────┘
+ 
+
+Why should you care as a ServiceNow dev? Because when you pair Claude Code with the SDK's build skills, it behaves like a ServiceNow developer. It knows how to scaffold tables, write business rules, structure scoped apps, all following platform best practices. We dig into those skills in a later episode.
+
+ 
+
+Installing Claude Code
+
+ 
+
+The recommended path is the native installer. No Node.js required, and it self-updates in the background.
+
+ 
+
+Mac/Linux: curl -fsSL https://claude.ai/install.sh | bash
+Windows (PowerShell): irm https://claude.ai/install.ps1 | iex
+ 
+
+If you already have Node.js on your machine, npm install -g @anthropic-ai/claude-code still works but is deprecated. Native is simpler and what Anthropic recommends going forward.
+
+ 
+
+  INSTALL CLAUDE CODE
+
+  Native (recommended)
+  ┌─────────────────────────────────────────┐
+  │ Mac/Linux:                              │
+  │   curl -fsSL https://claude.ai/         │
+  │     install.sh | bash                   │
+  │                                         │
+  │ Windows (PowerShell):                   │
+  │   irm https://claude.ai/                │
+  │     install.ps1 | iex                   │
+  │                                         │
+  │ No Node.js needed. Self-updates.        │
+  └─────────────────────────────────────────┘
+
+  npm (deprecated, still works)
+  ┌─────────────────────────────────────────┐
+  │ npm install -g @anthropic-ai/claude-code│
+  │                                         │
+  │ Requires Node.js 18+                    │
+  └─────────────────────────────────────────┘
+ 
+
+First run
+
+ 
+
+Once installed, cd into your project directory, type claude, and it'll walk you through authentication. You'll need a Pro, Max, Team, or Enterprise account. After that, you're good to go.
+
+ 
+
+  FIRST RUN
+
+  $ cd your-project/
+  $ claude
+
+  ┌─────────────────────────────────────────┐
+  │ 1. Authenticate via browser             │
+  │    (Pro, Max, Team, or Enterprise)      │
+  │                                         │
+  │ 2. Start prompting                      │
+  │    "Build me a scoped app that..."      │
+  └─────────────────────────────────────────┘
+ 
+
+Quick note on models: Claude Code runs on Opus and Sonnet. We'll cover when to pick which in a dedicated episode.
+
+ 
+
+And here's the key difference between Claude Code and a typical autocomplete tool:
+
+ 
+
+  AUTOCOMPLETE                    AGENT
+
+  ┌────────────────────┐          ┌────────────────────┐
+  │ Suggests the next  │          │ Reads your whole   │
+  │ line of code       │          │ project            │
+  │                    │          │                    │
+  │ You drive          │          │ Follows multi-step │
+  │                    │          │ instructions       │
+  │ One suggestion     │          │                    │
+  │ at a time          │          │ Edits files, runs  │
+  │                    │          │ commands, builds   │
+  └────────────────────┘          └────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+What is the ServiceNow SDK
+ 
+
+
+ 
+
+The ServiceNow SDK is how you build scoped apps without ever opening a browser. It's a command-line toolkit (the package is @​servicenow/sdk, and you typically run it with now-sdk) that lets you create, build, and deploy scoped applications from your local machine.
+
+ 
+
+You write code in Fluent, which is ServiceNow's own code framework for defining platform metadata. The output is native code: tables, business rules, script includes, flows. All of it compiles down to the same scoped app you'd get if you built it in ServiceNow Studio.
+
+ 
+
+Why Fluent matters: because you're writing in a language the platform already understands, there's no translation layer that breaks things. The code you write maps directly to the metadata ServiceNow expects. If you've ever had a deployment go sideways because some import didn't map correctly, you probably appreciate that directness.
+
+ 
+
+What the SDK gives you out of the box:
+
+ 
+
+A project structure with Fluent source files
+ATF tests generated alongside your app (optional)
+A readiness scan that runs during build
+A deploy command that pushes the finished app straight to your instance's sandbox
+ 
+
+  WHAT THE SDK GIVES YOU
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  - Fluent source code (platform-native) │
+  │  - Scoped app structure                 │
+  │  - ATF tests generated automatically    │
+  │  - Readiness scan during build          │
+  │  - Deploy straight to your instance     │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+When you initialize an SDK project, you'll see a folder structure that looks like any modern dev project:
+
+ 
+
+  your-app/
+  ├─ src/
+  │  ├─ tables/
+  │  ├─ business-rules/
+  │  ├─ script-includes/
+  │  └─ ...
+  ├─ package.json
+  ├─ now.config.json
+  └─ .claude/
+     └─ skills/
+        ├─ business-rule/
+        ├─ client-script/
+        ├─ script-include/
+        └─ ...
+ 
+
+There's a src/ directory for your Fluent code, a package.json, a now.config.json for your instance settings, and a .claude/skills/ directory (more on that in the skills episode).
+
+ 
+
+The build and deploy flow is straightforward:
+
+ 
+
+  ┌───────────┐     ┌───────────────┐     ┌──────────────────┐
+  │  Local    │     │   now-sdk     │     │   ServiceNow     │
+  │  Repo     ├────>│   build +     ├────>│   Instance       │
+  │           │     │   deploy      │     │                  │
+  │  Fluent   │     │               │     │   Native Scoped  │
+  │  source   │     │  ATF tests    │     │   App in your    │
+  │  code     │     │  + readiness  │     │   sandbox        │
+  │           │     │    scan       │     │                  │
+  └───────────┘     └───────────────┘     └──────────────────┘
+ 
+
+The "Build Anywhere" part: the SDK isn't locked to one tool. It works with Claude Code, Cursor, Windsurf, OpenAI Codex, Antigravity, Cowork. Whatever coding agent or editor you prefer, the SDK plugs in. This series focuses on Claude Code because that's my daily driver, but the skills and project structure carry over.
+
+ 
+
+  BUILD ANYWHERE
+
+  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+  │  Claude Code  │  │    Cursor     │  │   Windsurf    │
+  └───────────────┘  └───────────────┘  └───────────────┘
+  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+  │ OpenAI Codex  │  │  Antigravity  │  │    Cowork     │
+  └───────────────┘  └───────────────┘  └───────────────┘
+
+           Same SDK. Same skills. Same output.
+ 
+
+What you need to get started:
+
+ 
+
+A ServiceNow instance running Zurich or later (or a free PDI)
+Node.js installed on your machine
+The SDK package installed: npm install -g @​servicenow/sdk
+ 
+
+  GETTING STARTED CHECKLIST
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. ServiceNow instance (Zurich+)       │
+  │     or a free PDI                       │
+  │                                         │
+  │  2. Node.js installed                   │
+  │                                         │
+  │  3. @servicenow/sdk installed           │
+  │     npm install -g @servicenow/sdk      │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The SDK also comes bundled with build skills that teach your coding agent how ServiceNow works. They're what make Claude Code (or whichever tool you use) actually good at building platform-native apps. Without them, your agent is guessing. With them, it knows the rules. We cover those in a dedicated episode.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+SDK vs Studio: why switch?
+ 
+
+
+ 
+
+ServiceNow Studio isn't going anywhere. But if you've been curious why devs are moving to the SDK, here's the honest breakdown.
+
+ 
+
+Studio is great at what it does. If you're doing config-first work, laying out forms, building flows in Flow Designer with the visual canvas, or you've got team members who don't live in code, ServiceNow Studio is the right tool. It's visual, it's accessible, and it's been the default.
+
+ 
+
+The SDK gives you something different: local development, git-native version control, and the ability to pair with AI coding agents that can read your entire project, follow multi-step instructions, and write platform-native code. Every change is diffable, reviewable, and lives in your editor of choice.
+
+ 
+
+  STUDIO WORKFLOW               SDK WORKFLOW
+
+  ┌────────────────────┐        ┌────────────────────┐
+  │ Open browser       │        │ Open terminal      │
+  │ Log into instance  │        │ Write code locally │
+  │ Use visual tools   │        │ Git version control│
+  │ Flow Designer      │        │ AI agent assists   │
+  │ Form layouts       │        │ Diffable changes   │
+  │ Config-first       │        │ Code-first         │
+  └────────────────────┘        └────────────────────┘
+ 
+
+The output is the same. Both paths produce a scoped application. A scoped app built with the SDK and a scoped app built in Studio are the same artifact on the platform. Same tables, same business rules, same everything (mostly). The only difference is how you got there.
+
+ 
+
+           STUDIO                          SDK
+        ┌──────────┐                ┌──────────────┐
+        │ Visual   │                │ Fluent code  │
+        │ tools +  │                │ + AI agent   │
+        │ browser  │                │ + terminal   │
+        └─────┬────┘                └──────┬───────┘
+              │                            │
+              └──────────┐  ┌──────────────┘
+                         │  │
+                         v  v
+                  ┌──────────────┐
+                  │   Scoped     │
+                  │   Application│
+                  │   (same      │
+                  │    artifact) │
+                  └──────────────┘
+ 
+
+The honest trade-off: branch management from external tools is limited right now. If you need branching workflows, you'll want to use Source Control inside ServiceNow Studio or manage branches through GitHub directly. That's a known constraint today, and it's good to know now rather than have you hit it mid-project.
+
+ 
+
+  ┌─────────────────────────────────────────────┐
+  │                                             │
+  │  HONEST TRADE-OFF                           │
+  │                                             │
+  │  Branch management from external tools      │
+  │  is limited today.                          │
+  │                                             │
+  │  For branching workflows:                   │
+  │    - Use Source Control in Studio           │
+  │    - Or manage branches via Git/GitHub      │
+  │                                             │
+  │  This is a real constraint.                 │
+  │  Plan around it.                            │
+  │                                             │
+  └─────────────────────────────────────────────┘
+ 
+
+When to pick which:
+
+ 
+
+Pick SDK when: building from scratch, working with an AI coding agent, you want git-native version control, code-first development
+Pick Studio when: quick form tweak, one-off flow update, config-first work, team members who prefer visual tools, you need branching workflows today
+ 
+
+  PICK SDK WHEN...              PICK STUDIO WHEN...
+
+  ┌────────────────────┐        ┌────────────────────┐
+  │                    │        │                    │
+  │ Building from      │        │ Quick form tweak   │
+  │   scratch          │        │                    │
+  │                    │        │ One-off flow update │
+  │ Working with an    │        │                    │
+  │   AI coding agent  │        │ Config-first work  │
+  │                    │        │                    │
+  │ Want git-native    │        │ Team members who   │
+  │   version control  │        │   prefer visual    │
+  │                    │        │   tools            │
+  │ Code-first         │        │                    │
+  │   development      │        │ Need branching     │
+  │                    │        │   workflows today  │
+  └────────────────────┘        └────────────────────┘
+ 
+
+If you're not sure, try both on a small project and see which one clicks. You can always switch. The platform doesn't care how the app got there.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Your local dev environment setup
+ 
+
+
+ 
+
+There are a few things you need depending on if you are building with or without AI, but the full list is: Node.js, the ServiceNow SDK, Claude Code, the Fluent plugin, and a code editor. Let's walk through each one.
+
+ 
+
+  DEV ENVIRONMENT SETUP
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Node.js (v20+)                      │
+  │     Runtime for the SDK                 │
+  │                                         │
+  │  2. ServiceNow SDK                      │
+  │     npm install -g @servicenow/sdk      │
+  │                                         │
+  │  3. Claude Code                         │
+  │     AI coding agent                     │
+  │                                         │
+  │  4. ServiceNow SDK plugin               │
+  │     From the CC plugins marketplace     │
+  │                                         │
+  │  5. Code editor (optional)              │
+  │     VS Code, JetBrains, or terminal     │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Node.js first. The SDK requires Node 20 or higher. If you're not sure what version you have, open a terminal and run node -v. If it comes back with 20-something or higher, you're set. If it says nothing or shows something older, grab the LTS version from nodejs.org. LTS is the one you want. It comes with npm, which the SDK also needs.
+
+ 
+
+  NODE.JS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  $ node -v                              │
+  │  v20.x.x or higher  ──>  You're set    │
+  │                                         │
+  │  Nothing or older?                      │
+  │  ──>  nodejs.org  ──>  LTS version     │
+  │                                         │
+  │  Comes with npm (also required)         │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Next, the ServiceNow SDK. Once Node is installed, run npm install -g @​servicenow/sdk. That gives you the now-sdk command globally. Verify it with now-sdk --version. If you get a version number back, you're good.
+
+ 
+
+Claude Code. We covered the full install process in the Claude Code install episode, but the short version: use the native installer. Mac and Linux get a one-liner in the terminal. Windows gets a PowerShell one-liner. If you already have Node, the npm path still works too. Run claude --version to confirm it's there.
+
+ 
+
+Now the piece that ties Claude Code to ServiceNow: the ServiceNow Fluent plugin. This gives your agent two skills: one for setting up SDK projects and one that teaches it the SDK's metadata documentation. Without this plugin, Claude Code is a general-purpose coding agent. With it, it knows how ServiceNow works. If you're using Kiro instead of Claude Code, the same thing is available as a Kiro Power.
+
+ 
+
+To install it, run these three commands inside Claude Code:
+
+ 
+
+  /plugin marketplace add servicenow/sdk
+  /plugin install fluent
+  /reload-plugins
+ 
+
+That's it. Once you reload, the Fluent skills are active and your agent knows how ServiceNow works. Shoutout and thank you to Tomas Hrobarik for flagging that the original install steps here were unclear and sharing the exact commands. Community feedback like that makes this series better for everyone.
+
+ 
+
+  INSTALL COMMANDS
+
+  ServiceNow SDK
+  ┌─────────────────────────────────────────┐
+  │  $ npm install -g @servicenow/sdk       │
+  │  $ now-sdk --version                    │
+  └─────────────────────────────────────────┘
+
+  Claude Code
+  ┌─────────────────────────────────────────┐
+  │  Native installer (recommended)         │
+  │  or npm install                         │
+  │  $ claude --version                     │
+  └─────────────────────────────────────────┘
+
+  ServiceNow SDK Plugin (inside Claude Code)
+  ┌─────────────────────────────────────────┐
+  │  /plugin marketplace add servicenow/sdk │
+  │  /plugin install fluent                 │
+  │  /reload-plugins                        │
+  │                                         │
+  │  (or Kiro Power for Kiro users)         │
+  └─────────────────────────────────────────┘
+ 
+
+Last, a code editor. This one's personal preference. VS Code is the most common choice, and the Claude Code extension lets you work right inside it. Or skip the editor entirely and work from the terminal. Claude Code doesn't care where you run it.
+
+ 
+
+Once everything's installed, here's your verification check. Open a terminal and run these three commands: node -v, now-sdk --version, claude --version. All three should respond with a version number. Then confirm the ServiceNow SDK plugin shows up in your Claude Code plugins list. If everything checks out, you're ready to build.
+
+ 
+
+  QUICK CHECK
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  $ node -v                              │
+  │    v20.18.0             ✓               │
+  │                                         │
+  │  $ now-sdk --version                    │
+  │    4.6.x                ✓               │
+  │                                         │
+  │  $ claude --version                     │
+  │    1.x.x                ✓               │
+  │                                         │
+  │  SDK plugin in plugins list?  ✓         │
+  │                                         │
+  │  All four check out?  ──>  Ready to go  │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+One thing that trips people up: make sure your terminal session picks up global npm installs. If now-sdk isn't found right after installing, close your terminal and reopen it. On Windows, you might need to restart your shell entirely.
+
+ 
+
+  "now-sdk: command not found"
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Fix:                                   │
+  │                                         │
+  │  1. Close your terminal                 │
+  │  2. Reopen it                           │
+  │  3. Try now-sdk --version again         │
+  │                                         │
+  │  On Windows:                            │
+  │    Restart the shell entirely            │
+  │    (not just the tab)                   │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Getting started with SDK from Build Agent
+ 
+
+
+ 
+
+You don't have to start your SDK project from a blank folder. ServiceNow's Build Agent can scaffold the whole thing for you, and then you hand it off to Claude Code.
+
+ 
+
+Build Agent is ServiceNow's in-platform AI. You describe what you want in natural language, and it generates a full app skeleton: data model, tables, relationships, roles, navigation, the works. It's like having someone set up the foundation so you can jump straight into the interesting parts.
+
+ 
+
+Why use it as a starting point? Because going from zero to a running app structure takes time, even with the SDK. Build Agent gives you that structure in minutes.
+
+ 
+
+Tables with fields already defined
+Roles already scoped
+Navigation already wired
+App scope and metadata set up
+ 
+
+  TWO WAYS TO START YOUR SDK PROJECT
+
+  From Scratch                From Build Agent
+  ┌────────────────────┐      ┌────────────────────┐
+  │ now-sdk create     │      │ Describe your app   │
+  │ Empty project      │      │ Build Agent         │
+  │ You build          │      │   scaffolds it      │
+  │   everything       │      │ Pull to local       │
+  │                    │      │ Iterate with        │
+  │                    │      │   Claude Code       │
+  └────────────────────┘      └────────────────────┘
+ 
+
+  BUILD AGENT GENERATES
+
+  prompt
+    │
+    v
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Data model (tables + fields)           │
+  │  Relationships between tables           │
+  │  Roles and permissions                  │
+  │  Navigation modules                     │
+  │  App scope and metadata                 │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Free calls: Customer instances now get 100 free Build Agent calls (up from 25). PDIs get 25 (up from 10). That's a lot more runway to experiment, especially on a personal developer instance where you're just learning the workflow.
+
+ 
+
+  FREE BUILD AGENT CALLS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Customer instances:  100  (was 25)     │
+  │  PDIs:                 25  (was 10)     │
+  │                                         │
+  │  More room to experiment                │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The actual flow:
+
+ 
+
+Open Build Agent in your instance (it's inside ServiceNow Studio now)
+Describe your app in plain language
+Let it run, then review what it generated (check the tables, roles, fields)
+Pull that project into the SDK on your local machine by hooking up source control from within Build Agent (not Studio)
+Open it in Claude Code and iterate: add business rules, refine the data model, build out the UI
+ 
+
+  BUILD AGENT HANDOFF
+
+  ┌────────────┐    ┌─────────────┐    ┌──────────────┐
+  │ Build      │    │ SDK pull    │    │ Claude Code  │
+  │ Agent      │    │ to local    │    │ iterates     │
+  │            ├───>│ machine     ├───>│              │
+  │ In your    │    │             │    │ Add rules    │
+  │ instance   │    │ Review the  │    │ Refine model │
+  │            │    │ scaffold    │    │ Build UI     │
+  └────────────┘    └─────────────┘    └──────────────┘
+ 
+
+One tip: the more descriptive your prompt, the better the scaffold. "Build me a task tracker" gets you something generic. Spelling out what kind of tasks you're tracking, who's going to use it, what should be tracked for each item, how roles should be defined, what interface you want... that gets you something you can actually work with. We go deeper on this in the GDD/PRD episode.
+
+ 
+
+  GENERIC PROMPT
+  ┌─────────────────────────────────────────┐
+  │ "Build me a task tracker"               │
+  └─────────────────────────────────────────┘
+          Generic scaffold
+
+  DESCRIPTIVE PROMPT
+  ┌─────────────────────────────────────────┐
+  │ "Build me an IT asset tracking app      │
+  │  with tables for hardware assets,       │
+  │  software licenses, and vendor          │
+  │  contacts, with roles for asset         │
+  │  managers and read-only viewers"        │
+  └─────────────────────────────────────────┘
+          Usable scaffold
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Setting up your credentials
+ 
+
+
+ 
+
+If you've looked up how to set up credentials for ServiceNow development, you've probably seen a long walkthrough about creating a fine-grained personal access token in GitHub, saving it in a credential record inside your instance, and hooking that up to Source Control. Here's the gotcha: that whole process is for ServiceNow Studio. If you're building directly with the SDK, you don't need any of that.
+
+ 
+
+  THE CREDENTIAL GOTCHA
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  GitHub token + credential record       │
+  │  + Source Control config                │
+  │                                         │
+  │  That's for STUDIO.                     │
+  │                                         │
+  │  If you're building with the SDK,       │
+  │  you don't need any of it.              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Let me say it again because this trips people up. If you are building and deploying from the SDK, the only authentication you need is what now-sdk asks you for. That's it.
+
+ 
+
+When you run now-sdk deploy for the first time, it'll prompt you for:
+
+ 
+
+Your instance URL
+Your username
+Your password
+ 
+
+The SDK stores those credentials locally so you don't have to re-enter them every time you build. That's the whole setup. No GitHub tokens. No credential records in your instance. No Source Control configuration.
+
+ 
+
+  SDK AUTHENTICATION
+
+  $ now-sdk deploy
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Prompts you for:                       │
+  │    1. Instance URL                      │
+  │    2. Username                          │
+  │    3. Password                          │
+  │                                         │
+  │  Stored locally. Enter once.            │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Where people get confused is they find the official docs or community posts about credentials, follow all the steps for the GitHub token and the credential record, and then wonder why it was so complicated. It wasn't complicated for them. They were following instructions meant for a different workflow.
+
+ 
+
+If you do want to use Source Control inside Studio (maybe you're collaborating with someone who works in Studio, or you want to push your app to a GitHub repo through the platform), then yes, you'll need that GitHub token and credential record setup. But that's a Studio feature, not an SDK requirement.
+
+ 
+
+  WHO NEEDS WHAT
+
+  Building with SDK only:
+  ┌────────────────────────────────┐
+  │ now-sdk deploy credentials     │
+  │ (instance URL + login)         │
+  │ That's all.                    │
+  └────────────────────────────────┘
+
+  Using Studio Source Control:
+  ┌────────────────────────────────┐
+  │ GitHub personal access token   │
+  │ ServiceNow credential record   │
+  │ Source Control configuration   │
+  └────────────────────────────────┘
+ 
+
+Your checklist:
+
+ 
+
+Run now-sdk deploy
+Enter your instance URL, username, and password when prompted
+Confirm the deploy lands on your instance (check Studio's app list to verify)
+ 
+
+  SDK CREDENTIAL SETUP
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Run: now-sdk deploy                 │
+  │                                         │
+  │  2. Enter instance URL, username,       │
+  │     password when prompted              │
+  │                                         │
+  │  3. Confirm app lands on your instance  │
+  │     (check Studio app list)             │
+  │                                         │
+  │  Done.                                  │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+If your deploy fails after you've already authenticated, double-check two things:
+
+ 
+
+Is your instance URL correct and spelled right?
+Does your user account have the right roles to install applications?
+ 
+
+Those are the two things that actually go wrong with SDK auth. Not tokens. Not credential records. Just URL and permissions.
+
+ 
+
+  DEPLOY FAILING? CHECK THESE
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Instance URL                        │
+  │     Is it spelled correctly?            │
+  │     Include the full URL.               │
+  │                                         │
+  │  2. User permissions                    │
+  │     Does your account have the roles    │
+  │     to install applications?            │
+  │                                         │
+  │  NOT tokens. NOT credential records.    │
+  │  Just URL and permissions.              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Getting started with SDK from scratch
+ 
+
+
+ 
+
+You've got the SDK installed, your credentials set, and you've seen the Build Agent route. Here's the other path: starting from a blank folder with full control over every file from the first line.
+
+ 
+
+  TWO WAYS TO START
+
+  ┌───────────────────┐  ┌───────────────────┐
+  │ Build Agent       │  │ From scratch      │
+  │                   │  │                   │
+  │ AI scaffolds      │  │ now-sdk init      │
+  │ tables, roles,    │  │                   │
+  │ relationships     │  │ You get a clean   │
+  │                   │  │ skeleton, then    │
+  │ (Build Agent ep.) │  │ build from there  │
+  │                   │  │                   │
+  │                   │  │ (this episode)    │
+  └───────────────────┘  └───────────────────┘
+ 
+
+The command is now-sdk init. Open a folder on your computer where this project should live, run the command, answer a few prompts, and you've got a project structure ready to go.
+
+ 
+
+Here's what the prompts look like. First, pick a template (go with now-sdk boilerplate for a standard app). Next, the name of your ServiceNow application. This one's human-readable, so caps and spaces are fine, something like "Earls Super Cool App". Then the NPM package name, which is the one that needs to be lowercase with dashes, like earls-super-cool-app. The SDK then tries to log into your instance using the credentials you set up earlier. After that, Global or Scoped (go Scoped unless you have a specific reason not to). Finally, your scope name, which looks like x_snc_earls-super-coo.
+
+ 
+
+  $ now-sdk init
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Select a template:                     │
+  │  > now-sdk boilerplate                  │
+  │                                         │
+  │  Name of ServiceNow Application:        │
+  │  > Incident Helper                      │
+  │                                         │
+  │  NPM package name:                      │
+  │  > incident-helper                      │
+  │    (lowercase, no spaces)               │
+  │                                         │
+  │  [logs into your instance]              │
+  │                                         │
+  │  Create a Global/Scoped App?            │
+  │  > Scoped                               │
+  │                                         │
+  │  Scope name:                            │
+  │  > x_snc_incident_helper                │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+One thing the SDK will remind you to do before you try anything else: run npm install in the new folder. Once those prompts are done, the SDK generates a project directory for you. You get a src folder with some scaffolding, a package.json, and a config file for the SDK.
+
+ 
+
+  After: $ npm install
+
+  PROJECT STRUCTURE
+
+  incident-helper/
+  ├── src/
+  ├── package.json
+  └── now-sdk.json
+ 
+
+Now here's where it connects to Claude Code. cd into your new project folder (if you're not already there) and run claude. Once you're in, run /init. That's the Claude Code command that scans your project and writes a CLAUDE.md file with baseline context about what you're building. From there, you start prompting. "Add a table called requests with these fields." "Create a business rule that assigns based on category." Standard stuff.
+
+ 
+
+  NEXT STEP
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  $ cd incident-helper                   │
+  │  $ claude                               │
+  │  > /init                                │
+  │                                         │
+  │  /init generates CLAUDE.md              │
+  │  from your project                      │
+  │                                         │
+  │  Then start prompting:                  │
+  │  "Add a table called requests           │
+  │   with these fields..."                 │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+One thing to know: now-sdk init gives you a minimal skeleton. It's not going to generate tables or logic for you. That's on purpose. The idea is you get a clean, correctly structured project and then you (or your coding agent) build from there. If you want the AI-generated head start with tables and relationships already wired up, that's the Build Agent route we covered earlier.
+
+ 
+
+Both paths get you to the same place: a valid SDK project you can build and deploy. The choice is whether you want a blank canvas or a head start. I use both depending on the project. Greenfield exploratory work, I start from scratch. Something with a well-defined data model, I'll let Build Agent handle the scaffolding.
+
+ 
+
+  WHEN TO USE WHICH
+
+  ┌───────────────────┐  ┌───────────────────┐
+  │ From scratch      │  │ Build Agent       │
+  │                   │  │                   │
+  │ Greenfield        │  │ Well-defined      │
+  │ exploration       │  │ data model        │
+  │                   │  │                   │
+  │ You want full     │  │ You want a        │
+  │ control           │  │ head start        │
+  │                   │  │                   │
+  │ Minimal skeleton  │  │ Tables, roles,    │
+  │                   │  │ relationships     │
+  └───────────────────┘  └───────────────────┘
+
+  Both  ──>  valid SDK project  ──>  build + deploy
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Reading and understanding the SDK project structure
+ 
+
+
+ 
+
+You've created your project. You're staring at a folder full of files. Here's what everything does.
+
+ 
+
+The top-level directory has three things that matter: the src folder, now.config.json, and package.json. Everything else — node_modules, lock files, the .now/ and dist/ build-output folders, the @types/ alias folder — is plumbing you can ignore for now.
+
+ 
+
+  PROJECT ROOT
+
+  my-app/
+  ├── src/                ← Your app
+  ├── now.config.json     ← Project config
+  ├── package.json        ← Deps + scripts
+  ├── node_modules/       ← (ignore)
+  ├── package-lock.json   ← (ignore)
+  ├── .now/               ← (ignore)
+  ├── dist/               ← (ignore)
+  └── @types/             ← (ignore)
+ 
+
+Start with src. This is where your app lives. Inside src you'll find one folder: fluent. That's the Fluent authoring root — Fluent is ServiceNow's TypeScript-based, code-first way to declare platform metadata. You don't write GlideRecord here. You write .now.ts files that describe what tables, business rules, script includes, ACLs, and so on should look like, and the SDK compiles them into real platform artifacts on build.
+
+ 
+
+  FRESH SCAFFOLD
+
+  src/
+  └── fluent/
+      └── generated/
+          └── keys.ts      ← SDK-managed, don't edit
+
+  COMMON AUTHORING CONVENTION
+
+  src/
+  └── fluent/
+      ├── business-rules/
+      │   └── my-rule.now.ts
+      ├── client-scripts/
+      │   └── show-warning.now.ts
+      ├── tables/
+      │   └── requests.now.ts
+      └── generated/
+          └── keys.ts
+ 
+
+  FLUENT (SDK)
+
+  ┌─────────────────────────────────────────┐
+  │  TypeScript, code-first                 │
+  │  .now.ts files under src/fluent/        │
+  │  Declare tables, rules, scripts, ACLs   │
+  │  SDK compiles on build                  │
+  └─────────────────────────────────────────┘
+ 
+
+On a fresh scaffold, src/fluent/ is almost empty. The only thing in there is a generated/ folder with a keys.ts file. Don't touch that — the SDK regenerates it on every build. It's a sys_id registry that lets Fluent type-check cross-references between records. Everything else under src/fluent/ is yours to create. A common convention is to group files by artifact type — business-rules/, client-scripts/, tables/, and so on — with each file named in kebab-case and ending in .now.ts.
+
+ 
+
+now.config.json is the SDK's project config. It holds your app's scope, scope ID, and name, plus optional build settings like which directory Fluent sources live in. It does not hold your instance URL. Instance credentials are managed separately by the now-sdk auth command and stored outside the project. If you need to point at a different instance, you run now-sdk auth --use <alias>, not edit this file.
+
+ 
+
+  CONFIG FILES
+
+  now.config.json
+  ┌─────────────────────────────────────────┐
+  │  App scope                              │
+  │  Scope ID                               │
+  │  App name                               │
+  │  Build settings                         │
+  │  (not the instance URL,                 │
+  │   that's now-sdk auth)                  │
+  └─────────────────────────────────────────┘
+
+  package.json
+  ┌─────────────────────────────────────────┐
+  │  @servicenow/sdk                        │
+  │  @servicenow/glide                      │
+  │  Scripts: build, deploy,                │
+  │           transform, types              │
+  └─────────────────────────────────────────┘
+ 
+
+package.json is standard npm. It pins the SDK (@​servicenow/sdk) and the platform type package (@​servicenow/glide), and it wires up the scripts you'll actually run — build, deploy, transform, types. You can add npm packages if your app needs them, but most ServiceNow apps don't need much beyond what the SDK provides.
+
+ 
+
+One more thing worth mentioning: CLAUDE.md. The SDK doesn't create this for you — it's not part of the bootstrap. If you see one in your project, someone added it, usually by running Claude Code's /init command. It describes your project to your coding agent. We cover this in detail in the CLAUDE.md episode.
+
+ 
+
+The mental model: src/fluent/ is your app, now.config.json is your project config, package.json is your dependency and script list, and CLAUDE.md — if present — is your agent's context. That's the whole project.
+
+ 
+
+  THE MENTAL MODEL
+
+  ┌──────────┐  ┌──────────┐
+  │src/fluent│  │now.config│
+  │    /     │  │  .json   │
+  │          │  │          │
+  │ Your app │  │ Project  │
+  │ source   │  │ config   │
+  └──────────┘  └──────────┘
+  ┌──────────┐  ┌──────────┐
+  │package   │  │CLAUDE.md │
+  │.json     │  │(optional)│
+  │          │  │          │
+  │ Deps +   │  │ Agent    │
+  │ scripts  │  │ context  │
+  └──────────┘  └──────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Group 2: Core Workflow
+ 
+
+This is where the real building starts. The setup episodes got your tools and credentials in place. Now it's about how you actually work with Claude Code day to day: what you feed it, how you prompt it, and the patterns that separate a frustrating session from a productive one.
+
+ 
+
+GDD or PRD to start
+ 
+
+
+ 
+
+The single biggest upgrade to your output isn't a better prompt. It's having a document to prompt against.
+
+ 
+
+Claude Code (or any coding agent) is only as good as the context you give it. A three-line prompt gets you a three-line-quality app. Something like "build me a task tracker" and you'll get a generic shell that doesn't match anything you actually need. But hand it a document that describes your users, your data model, and your business rules, and the agent has something real to work with.
+
+ 
+
+That document goes by different names depending on your background:
+
+ 
+
+GDD (Game Design Document) if you come from gaming
+PRD (Product Requirements Document) if you come from product teams
+ 
+
+Same idea: describe what you're building, who it's for, and how it should behave before you start writing code.
+
+ 
+
+For a ServiceNow app, here's what to include:
+
+ 
+
+Purpose: One paragraph on what the app does and why it exists
+Users and roles: Who interacts with this app and what permissions do they need?
+Key tables and fields: Your data model, relationships between tables
+Business rules or flows: What the app enforces
+Integrations: External APIs, notifications, anything the app talks to
+ 
+
+  PRD SKELETON
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  PURPOSE                                │
+  │  What the app does and why              │
+  │                                         │
+  │  USERS AND ROLES                        │
+  │  Who uses it, what permissions          │
+  │                                         │
+  │  DATA MODEL                             │
+  │  Tables, fields, relationships          │
+  │                                         │
+  │  BUSINESS RULES                         │
+  │  What the app enforces                  │
+  │                                         │
+  │  INTEGRATIONS                           │
+  │  External APIs, notifications           │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+You don't need a 30-page spec. A solid one-to-two-page doc covers most apps. If you're the only developer, a bulleted outline might be enough. The point is to think through the structure before you start telling your agent to build it. I actually have AI interview me about what I want and have it build the PRD for me.
+
+ 
+
+Here's the workflow I use: drop the PRD into the root of your repo, then reference it in your CLAUDE.md file so Claude Code loads it as context automatically. Every prompt you write after that is grounded in that document. Claude Code knows the tables, the roles, the rules. It's not guessing.
+
+ 
+
+  ┌──────────┐     ┌──────────────┐     ┌──────────────┐
+  │  Write   │     │  Drop in     │     │  Prompt      │
+  │  your    ├────>│  repo root   ├────>│  Claude Code │
+  │  PRD     │     │              │     │              │
+  └──────────┘     │  Reference   │     │  Every       │
+                   │  in          │     │  prompt is   │
+                   │  CLAUDE.md   │     │  grounded    │
+                   └──────────────┘     └──────────────┘
+
+  PRD.md  -->  CLAUDE.md says "read PRD.md"  -->  context
+ 
+
+So now your prompt becomes something like: Build the app described in PRD.md, starting with the core tables and the business rules. You're way more likely to get something you can actually use.
+
+ 
+
+  BAD PROMPT
+  ┌─────────────────────────────────────────┐
+  │ "Build me an incident management app"   │
+  └─────────────────────────────────────────┘
+
+  GROUNDED PROMPT
+  ┌─────────────────────────────────────────┐
+  │ "Build the app described in PRD.md,     │
+  │  starting with the core tables and the  │
+  │  assignment business rule"              │
+  └─────────────────────────────────────────┘
+ 
+
+This also saves you API calls. Descriptive prompts reduce back-and-forth. Fewer rounds of "no, I meant this" means fewer calls burned on clarification.
+
+ 
+
+  WITHOUT A PRD              WITH A PRD
+
+  ┌──────────────────┐       ┌──────────────────┐
+  │ Prompt 1: vague  │       │ Prompt 1: clear  │
+  │ "build a tracker"│       │ "build per PRD"  │
+  │                  │       │                  │
+  │ Agent: "what     │       │ Agent: builds    │
+  │  kind of         │       │ what you         │
+  │  tracker?"       │       │ described        │
+  │                  │       │                  │
+  │ Prompt 2: more   │       │ Prompt 2: next   │
+  │  details         │       │ feature          │
+  │                  │       │                  │
+  │ Prompt 3: "no,   │       │                  │
+  │  I meant..."     │       │                  │
+  │                  │       │                  │
+  │ 5+ calls burned  │       │ 2 calls, done    │
+  └──────────────────┘       └──────────────────┘
+ 
+
+We'll talk about CLAUDE.md in its own episode, but here's the preview: CLAUDE.md is the file that tells Claude Code about your project. When your PRD is referenced there, every conversation starts with that context already loaded. No copy-pasting. No repeating yourself.
+
+ 
+
+Write the doc first. Prompt second. Your future self will thank you.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+CLAUDE.md and project-level context files
+ 
+
+
+ 
+
+In the Design Document episode, I mentioned dropping your design doc in the repo and referencing it in CLAUDE.md. Now let's talk about what CLAUDE.md actually is and why it matters.
+
+ 
+
+CLAUDE.md is a markdown file at the root of your project. Claude Code reads it automatically when you start a conversation. No configuration needed. If the file exists, it gets loaded. It becomes standing instructions for your coding agent. Every prompt you write after that builds on this context.
+
+ 
+
+  CLAUDE.md
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  A markdown file at your project root   │
+  │                                         │
+  │  - Loads automatically                  │
+  │  - No flags or config needed            │
+  │  - Standing instructions for            │
+  │    your coding agent                    │
+  │  - Every prompt builds on this context  │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+What goes in it? Start with a one-liner about the project: what it does, what platform it's on. Then add build and deploy commands, because your agent needs to know how to run things. For an SDK project, that's now-sdk build and now-sdk deploy. Add any rules specific to your codebase: naming conventions, patterns to follow, things to avoid.
+
+ 
+
+  CLAUDE.md CONTENTS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Project description (one-liner)     │
+  │                                         │
+  │  2. Build + deploy commands             │
+  │     now-sdk build                       │
+  │     now-sdk deploy                      │
+  │                                         │
+  │  3. Codebase rules                      │
+  │     Naming conventions                  │
+  │     Patterns to follow                  │
+  │     Things to avoid                     │
+  │                                         │
+  │  4. References to other docs            │
+  │     "Read PRD.md for the full spec"     │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Here's a minimal example. Project name, one sentence about the app, the build command, the deploy command, and a note that says "read PRD.md for the full app spec." That's five lines and it's already better than nothing.
+
+ 
+
+  # My Incident App
+
+  A scoped app for routing internal
+  incidents by category and priority.
+
+  ## Commands
+  - Build: now-sdk build
+  - Deploy: now-sdk deploy
+
+  ## Context
+  - Read PRD.md for the full app spec
+ 
+
+To make it even more powerful, you can reference other files from CLAUDE.md. Point it to your PRD, your architecture doc, a style guide for your code. Claude Code will read those too. You don't have to cram everything into one file basically. Let CLAUDE.md be your entry point and let everything else branche off from it.
+
+ 
+
+  CONTEXT NETWORK
+
+           CLAUDE.md
+          (entry point)
+               │
+       ┌───────┼───────┐
+       v       v       v
+    PRD.md  arch.md  style.md
+
+  CLAUDE.md links out to detailed docs
+  Claude Code reads them all
+ 
+
+Running /init in Claude Code generates a basic CLAUDE.md when you create a project. It's a starting point, not the finished version. As your app grows, keep updating it. New tables? You can add them. New conventions your agent should follow? You can add those too. The better your CLAUDE.md, the less you repeat yourself in prompts.
+
+ 
+
+The one BIG caveat I must say though is: don't make it too long. Claude Code reads the whole thing every conversation. If your CLAUDE.md is a thousand lines, that's a lot of context loaded before you even ask a question. Keep the file itself concise and link out to detailed docs when needed.
+
+ 
+
+There's also a hierarchy. You can have a CLAUDE.md at the project root, one in a parent directory, and one in your home directory. They all get loaded, most specific wins. For most projects, one file at the root is plenty.
+
+ 
+
+  CLAUDE.md HIERARCHY
+
+  ~/.claude/CLAUDE.md        (global)
+       │
+  ~/projects/CLAUDE.md       (parent)
+       │
+  ~/projects/my-app/CLAUDE.md (project)
+
+  ┌─────────────────────────────────────────┐
+  │  All three load automatically           │
+  │  Most specific wins on conflict         │
+  │  One file at the root is usually enough │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+What are Claude Code skills (and how to write your own)?
+ 
+
+
+ 
+
+Skills are how you teach your coding agent something it doesn't already know how to do.
+
+ 
+
+They're reusable markdown files that live in a .claude/skills/ folder, and each one acts as a self-contained expert on a single subject. When the agent encounters a task that matches what the skill covers, the skill gets loaded into context and the agent follows its instructions.
+
+ 
+
+  WHAT'S A SKILL?
+
+  Reusable markdown file, one subject
+  Location: .claude/skills/
+
+  Loaded into context when relevant
+
+  Two activation modes:
+  ┌────────────────────┬───────────────────┐
+  │ Slash Command      │ Auto-Load         │
+  │                    │                   │
+  │ You invoke it:     │ Claude Code reads │
+  │ /simplify          │ descriptions and  │
+  │ /debug             │ picks the skill   │
+  │                    │ for you           │
+  └────────────────────┴───────────────────┘
+ 
+
+There are two ways skills activate. You can call them directly as slash commands. Claude Code ships with a few already, like /simplify or /debug. Or you can let the agent decide. Each skill has a description, and Claude Code reads those descriptions and loads the right skill on its own based on what you're asking for.
+
+ 
+
+  AUTO-LOAD IN ACTION
+
+  ┌──────────────────────────────────────┐
+  │ Prompt: "Write a migration to drop   │
+  │  the user_temp column"               │
+  │                                      │
+  │ Claude Code scans descriptions       │
+  │ → matches db-migrations skill        │
+  │ → loads the skill                    │
+  │ → follows its rules (check indexes,  │
+  │    wrap in transaction, etc.)        │
+  │                                      │
+  │ You never typed /db-migrations.      │
+  │ Claude Code decided on its own.      │
+  └──────────────────────────────────────┘
+ 
+
+Inside a SKILL.md, there are three layers worth knowing:
+
+ 
+
+  INSIDE A SKILL.MD
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. DESCRIPTION                         │
+  │     "When to use me"                    │
+  │     Drives auto-load matching           │
+  │                                         │
+  │  2. INSTRUCTIONS                        │
+  │     Steps, conventions, file            │
+  │     structures, procedural rules        │
+  │                                         │
+  │  3. SPECIALIZED KNOWLEDGE               │
+  │     Domain expertise the agent          │
+  │     wouldn't otherwise have             │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The description block at the top. This is what Claude Code reads to decide whether to load the skill. If your description is vague, the agent won't know when to reach for it.
+
+ 
+
+The instructions. What the agent should do when the skill is active. Steps, conventions, file structures, anything procedural goes here.
+
+ 
+
+The specialized knowledge. This is the actual expertise. If your skill is about database migrations, this is where you tell the agent to always check for existing indexes, never drop a column without a feature flag, batch updates on large tables instead of letting them lock. The rules a senior engineer has internalized but a generic LLM wouldn't know.
+
+ 
+
+  EXAMPLE: db-migrations/SKILL.md
+
+  ---
+  description: Use when writing or
+    reviewing database migrations
+  ---
+
+  ## Instructions
+  1. Check existing indexes first
+  2. Use IF EXISTS / IF NOT EXISTS
+  3. Wrap changes in a transaction
+
+  ## Rules
+  - Never drop without a feature flag
+  - Backfill before adding NOT NULL
+  - Batch updates on large tables
+ 
+
+Authoring one is straightforward. Create a folder under .claude/skills/ named after your skill. Drop a SKILL.md inside. Write the three layers: description, instructions, specialized knowledge. Claude Code picks it up automatically next time you start a conversation. No registration, no config file, no plugin manifest.
+
+ 
+
+  WRITE YOUR OWN SKILL
+
+  Step 1: Create the folder
+  .claude/skills/my-skill/
+
+  Step 2: Add the file
+  .claude/skills/my-skill/SKILL.md
+
+  Step 3: Write the three layers
+  description / instructions /
+  specialized knowledge
+
+  Done. Claude Code finds it
+  automatically next conversation.
+ 
+
+The reason skills matter is that you encode a domain once and reuse it forever. Write a skill for how your team handles API versioning, and every prompt your agent gets after that builds on it. Skills are how you stop re-explaining the same constraints in every conversation.
+
+ 
+
+Next episode, we look at the ServiceNow SDK plugin, which is a practical example of skills used to teach an agent an entire platform.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+The ServiceNow SDK skills plugin (and what it teaches your agent)
+ 
+
+
+ 
+
+A coding agent working on ServiceNow without skills is guessing at the platform. It doesn't know when to use a Before business rule versus an After. It doesn't know which client script type fires when. It builds things that mostly work and then break in subtle ways because it was approximating.
+
+ 
+
+The ServiceNow SDK ships a Claude Code plugin that fixes this. It gives your agent two skills.
+
+ 
+
+  THE PLUGIN GIVES YOUR AGENT TWO SKILLS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. SDK Project Setup                   │
+  │     Spin up and configure               │
+  │     SDK projects                        │
+  │                                         │
+  │  2. SDK Metadata Documentation          │
+  │     Business rules, client scripts,     │
+  │     script includes, tables,            │
+  │     UI actions, flow artifacts,         │
+  │     and every other metadata type       │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The first is SDK Project Setup. It teaches your agent how to spin up and configure SDK projects.
+
+ 
+
+The second is SDK Metadata Documentation. This is the one that changes how your agent writes code. It covers every metadata type on the platform: business rules, client scripts, script includes, tables, UI actions, flow designer artifacts. Inside that documentation, your agent learns when to use a Before business rule versus an After, when to reach for an async rule, how to structure a client-callable script include, which display rules tend to cause problems. The platform nuance that takes a developer years to absorb is now part of your agent's context.
+
+ 
+
+  WHAT YOUR AGENT LEARNS
+
+  Business Rules
+  ├── Before vs After
+  ├── Sync vs Async
+  └── Insert / update / delete timing
+
+  Client Scripts
+  ├── onLoad, onChange, onSubmit
+  └── When to use GlideAjax
+
+  Script Includes
+  ├── Client-callable patterns
+  └── Structure for reuse
+
+  Display Rules
+  └── Common pitfalls
+ 
+
+Installing it takes three commands inside Claude Code:
+
+ 
+
+/plugin marketplace add servicenow/sdk
+
+ 
+
+/plugin install fluent
+
+ 
+
+/reload-plugins
+
+ 
+
+The first points Claude Code at the ServiceNow plugin source. The second installs the fluent plugin. The third activates it.
+
+ 
+
+The metadata documentation versions with the SDK. When ServiceNow ships a new SDK release, the docs update with it. Your agent always reads instructions that match the SDK you have installed, not a static file set that's gone stale.
+
+ 
+
+  VERSIONED DOCUMENTATION
+
+  SDK v1.0  ──>  Docs for v1.0
+  SDK v2.0  ──>  Docs for v2.0
+  SDK v3.0  ──>  Docs for v3.0
+
+  When the SDK updates, docs update.
+
+  Your agent never reads stale
+  instructions.
+ 
+
+If you're on Kiro instead of Claude Code, the same plugin is available as a Kiro Power through the AWS partnership.
+
+ 
+
+  WHERE TO GET IT
+
+  ┌──────────────────┐  ┌──────────────────┐
+  │ Claude Code      │  │ Kiro             │
+  │                  │  │                  │
+  │ Plugins          │  │ Kiro Power       │
+  │ marketplace      │  │ (AWS partnership)│
+  │                  │  │                  │
+  │ /plugin          │  │ Install the      │
+  │  marketplace add │  │ ServiceNow SDK   │
+  │  servicenow/sdk  │  │ Power            │
+  │ /plugin install  │  │                  │
+  │  fluent          │  │                  │
+  │ /reload-plugins  │  │                  │
+  └──────────────────┘  └──────────────────┘
+ 
+
+After install, the difference shows up fast. Instead of explaining what a business rule's "When to run" field means in every prompt, you just describe what you want and the agent picks the right timing and execution mode because the skill already teaches it the rules.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+How to write good prompts for Claude Code
+ 
+
+
+ 
+
+The difference between a frustrating session and a productive one usually comes down to how you write the prompt. Here's some things I've learned from building a lot of apps with Claude Code.
+
+ 
+
+First: be specific about what you want. "Add a table" is vague. "Add a table called incident_feedback with fields for rating (integer, 1-5), comments (string, 500 chars), and a reference to the incident table" gives the agent something concrete to build. The more precise you are about fields, types, and relationships, the fewer rounds of correction you'll need.
+
+ 
+
+  VAGUE
+  ┌─────────────────────────────────────────┐
+  │ "Add a table"                           │
+  └─────────────────────────────────────────┘
+
+  SPECIFIC
+  ┌─────────────────────────────────────────┐
+  │ "Add a table called incident_feedback   │
+  │  with fields for rating (integer, 1-5), │
+  │  comments (string, 500 chars), and a    │
+  │  reference to the incident table"       │
+  └─────────────────────────────────────────┘
+ 
+
+Second: give context about why. "Add a business rule that sets priority" is fine, but "Add a business rule that sets priority based on the category field, because our SLA timers depend on priority being set at creation" tells the agent the intent behind the logic. It'll make better decisions about edge cases when it knows the purpose.
+
+ 
+
+  WHAT ONLY
+  ┌─────────────────────────────────────────┐
+  │ "Add a business rule that sets          │
+  │  priority"                              │
+  └─────────────────────────────────────────┘
+
+  WHAT + WHY
+  ┌─────────────────────────────────────────┐
+  │ "Add a business rule that sets          │
+  │  priority based on category,            │
+  │  because our SLA timers depend on       │
+  │  priority being set at creation"        │
+  └─────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────┐
+  │ Agent makes better edge-case decisions  │
+  │ when it knows the intent                │
+  └─────────────────────────────────────────┘
+ 
+
+Third: break big asks into steps. Don't prompt "Build me a full incident management app." Instead, go one piece at a time. "Create the core tables first." Then "Add the assignment business rule." Then "Build the notification flow." Each prompt is small enough that you can review the output before moving on. If something's wrong, you catch it early.
+
+ 
+
+  DON'T
+  ┌─────────────────────────────────────────┐
+  │ "Build me a full incident               │
+  │  management app"                        │
+  └─────────────────────────────────────────┘
+
+  DO
+  ┌─────────────────────────────────────────┐
+  │ Step 1: "Create the core tables"        │
+  │         Review ──> approve              │
+  │                                         │
+  │ Step 2: "Add the assignment rule"       │
+  │         Review ──> approve              │
+  │                                         │
+  │ Step 3: "Build the notification flow"   │
+  │         Review ──> approve              │
+  └─────────────────────────────────────────┘
+ 
+
+Fourth: tell the agent what "done" looks like. "When this is working, I should be able to create an incident_feedback record and see the average rating on the incident form." That gives Claude Code a target to aim at. It can self-check its own work against your definition of done.
+
+ 
+
+  DEFINITION OF DONE
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  "When this is working, I should be     │
+  │   able to create an incident_feedback   │
+  │   record and see the average rating     │
+  │   on the incident form"                 │
+  │                                         │
+  │  ┌───────────────────────────────────┐  │
+  │  │ Gives the agent a target          │  │
+  │  │ Agent can self-check its work     │  │
+  │  └───────────────────────────────────┘  │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Fifth: reference your docs. If you followed the PRD and CLAUDE.md episodes, you've already got context loaded. Your prompts become short because the background is already there. "Add the next table from the PRD" works when your PRD is already in context. You don't need to re-explain the app every time.
+
+ 
+
+If I had to boil it down to one over-arching thought: treat your coding agent like a capable colleague who just sat down at your desk. Give them enough context to do good work, but don't try to dictate every keystroke.
+
+ 
+
+  PROMPTING PATTERNS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Be specific (fields, types, names)  │
+  │                                         │
+  │  2. Give the why (intent, not just      │
+  │     the what)                           │
+  │                                         │
+  │  3. Break it down (one piece at a time) │
+  │                                         │
+  │  4. Define done (what success looks     │
+  │     like)                               │
+  │                                         │
+  │  5. Reference your docs (PRD, CLAUDE.md │
+  │     do the heavy lifting)              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+When to use plan mode
+ 
+
+
+ 
+
+You've probably done this: you've got a complex feature to build, you type out the prompt, hit enter, and watch Claude Code start making changes. Files get created, logic gets added, and three minutes later you realize it took the completely wrong approach. Now you're in undo territory.
+
+ 
+
+Plan mode is how you avoid that.
+
+ 
+
+In Claude Code, plan mode is a thinking-only phase you can engage before Claude touches anything. It reads the codebase, reasons through the problem, and lays out a step-by-step approach for you to review. Nothing gets written. No files change. You just see the plan.
+
+ 
+
+  PLAN MODE
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Claude reads your codebase             │
+  │  Claude reasons through the problem     │
+  │  Claude proposes a plan                 │
+  │                                         │
+  │  Nothing is written until you approve   │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+You toggle it in the UI or with shift+tab in the terminal. Once you see the plan, you can approve it, redirect it, or add constraints before execution starts. It's a nice checkpoint.
+
+ 
+
+  ENABLING PLAN MODE
+
+  Terminal:  Shift + Tab (cycles modes)
+  UI:        Plan mode button
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Claude reads your codebase          │
+  │  2. Claude proposes a plan              │
+  │  3. You review (approve or redirect)    │
+  │  4. Claude executes                     │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+So when should you actually use it?
+
+ 
+
+Use plan mode when the task is big and the approach isn't obvious. If you're building a feature that touches multiple services, components, or data layers, you want to know the order of operations before Claude starts. A wrong sequence in a complex feature can leave you with half-built logic that's harder to unwind than starting fresh.
+
+ 
+
+  USE PLAN MODE WHEN...
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Task spans multiple files/components   │
+  │                                         │
+  │  High stakes (auth, migrations,         │
+  │  core business logic)                   │
+  │                                         │
+  │  Requirements are fuzzy or ambiguous    │
+  │                                         │
+  │  Starting a new app or major section    │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Use it when the stakes are higher. Anything touching authentication, data migrations, or core business logic in production deserves a review step. Getting those wrong isn't just annoying, it can break things for real users.
+
+ 
+
+Use it when you're not sure what "done" looks like yet. If the feature requirements are a little fuzzy, plan mode surfaces questions. Claude Code will often call out ambiguities in the plan that you hadn't thought through. That's cheaper to resolve in a plan than in written code.
+
+ 
+
+And use it when you're getting started on a new app or a major new section of one. We'll go deeper on this in a later episode on the full task-planning workflow, but plan mode is a good entry point for getting Claude Code oriented before it touches anything.
+
+ 
+
+When don't you need it? Small, clearly scoped asks. "Add a required field to this form." "Fix this specific validation message." Stuff where the path is obvious and the blast radius is small. Just prompt it directly.
+
+ 
+
+  SKIP PLAN MODE WHEN...
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  "Add a choice field to this table"     │
+  │  "Fix this validation message"          │
+  │                                         │
+  │  Path is obvious                        │
+  │  Blast radius is small                  │
+  │                                         │
+  │  Just prompt it directly                │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The rule of thumb I use: if getting the approach wrong means significant rework, use plan mode. If it doesn't, skip it and stay in flow.
+
+ 
+
+  THE RULE OF THUMB
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Wrong approach = significant rework?   │
+  │                                         │
+  │  YES ──> Use plan mode                  │
+  │                                         │
+  │  NO  ──> Just prompt it                 │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Opus vs Sonnet (and cost/token awareness)
+ 
+
+
+ 
+
+There's a model picker in Claude Code and a lot of people just leave it on the default and never think about it again. That's mostly fine. But understanding what you're picking between saves you money and gets you better results on the work that actually needs it.
+
+ 
+
+Three models. Opus is the strongest reasoning model. It thinks harder, slower, and costs more per token. Sonnet is the workhorse: very capable, significantly faster, much cheaper per token. Haiku is the smallest and fastest, good for narrow well-scoped tasks. This episode is mostly about the first two.
+
+ 
+
+  THE MODELS
+
+  ┌──────────┬──────────┬────────┬──────────┐
+  │          │ Power    │ Speed  │ Cost     │
+  ├──────────┼──────────┼────────┼──────────┤
+  │ Opus     │ Highest  │ Slow   │ $$$      │
+  │ Sonnet   │ Strong   │ Fast   │ $        │
+  │ Haiku    │ Focused  │ Fastest│ ¢        │
+  └──────────┴──────────┴────────┴──────────┘
+ 
+
+For most coding tasks (building features, refactoring, debugging, writing tests), Sonnet is the right default. It handles the majority of what you'll ask it to do, and the cost difference over a day of work adds up. Don't reach for Opus just because it's the highest tier.
+
+ 
+
+Where I land differently from most people: I don't run pure Sonnet as my default. I run opusplan.
+
+ 
+
+opusplan is a mode built into Claude Code where Opus handles planning and Sonnet handles execution. When you enter plan mode, you get Opus's deeper reasoning on the architecture and approach. When Claude starts making file edits, it switches to Sonnet. You get the strong plan without paying Opus rates for every line of code. Access it with /model opusplan in the Claude Code prompt.
+
+ 
+
+  OPUSPLAN
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Planning phase      Execution phase    │
+  │  ┌────────────┐      ┌───────────────┐  │
+  │  │    Opus    │ ───> │    Sonnet     │  │
+  │  │  (deeper   │      │ (file edits,  │  │
+  │  │ reasoning) │      │  code write)  │  │
+  │  └────────────┘      └───────────────┘  │
+  │                                         │
+  │  Enable:  /model opusplan               │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+If you caught the previous episode on plan mode, this is the same concept with a smarter planner baked in. I use it for almost everything.
+
+ 
+
+There are still cases where I'll switch to pure Opus. Hard architectural decisions where the planning itself needs extra depth. Debugging sessions where Sonnet has given me the wrong answer twice and I need a fresh, deeper read. Anything where getting the approach wrong is going to cost me more time than the model costs me money.
+
+ 
+
+  SWITCH TO PURE OPUS WHEN...
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Hard architectural decisions           │
+  │  (data model design, complex flows)     │
+  │                                         │
+  │  Stuck debugging: Sonnet was wrong      │
+  │  twice and you need a deeper read       │
+  │                                         │
+  │  Cost of being wrong > cost of          │
+  │  the API call                           │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+A word on token awareness. Long sessions accumulate context, and bigger context means more tokens per turn. Two habits help: start a fresh conversation when you move to a new feature, and keep your project context files tight. The biggest token savings isn't clever prompt tricks. It's the model understanding your intent on the first try.
+
+ 
+
+  TOKEN-AWARE HABITS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  ☐ Start fresh for each new feature     │
+  │    (don't carry old context forward)    │
+  │                                         │
+  │  ☐ Keep context files tight             │
+  │    (no padding Claude can look up)      │
+  │                                         │
+  │  Best savings: nail intent first try    │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Rule of thumb: opusplan by default. Pure Opus when the architecture is genuinely complex. Pure Sonnet when you're cranking through small, clearly-scoped changes. Haiku when you know exactly what you want and want it fast.
+
+ 
+
+  RULE OF THUMB
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Most tasks       ──>  opusplan         │
+  │                                         │
+  │  Complex arch     ──>  pure Opus        │
+  │                                         │
+  │  Small, scoped    ──>  pure Sonnet      │
+  │                                         │
+  │  Narrow + fast    ──>  Haiku            │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Plan tasks, then plan execution, then execute
+ 
+
+
+ 
+
+You remember that episode on plan mode? The one where I said we'd go deeper on this in a later episode on the full task-planning workflow? This is that episode.
+
+ 
+
+Plan mode is great. But for anything beyond a medium-complexity feature, one planning pass isn't always enough. Planning what to do and planning how to do it are two different kinds of thinking. When you mix them together, you get plans that are simultaneously too vague in some spots and too detailed in others.
+
+ 
+
+Here's the workflow I use.
+
+ 
+
+  THREE-PASS PLANNING WORKFLOW
+
+  ┌─────────────────────────────────────┐
+  │                                     │
+  │  PASS 1: Task Planning              │
+  │  What needs to happen?              │
+  │                                     │
+  │  PASS 2: Execution Planning         │
+  │  How does each task get done?       │
+  │                                     │
+  │  PASS 3: Execute                    │
+  │  Write the code                     │
+  │                                     │
+  └─────────────────────────────────────┘
+ 
+
+First pass: task planning. Ask Claude Code to list all the discrete things that need to happen to complete the feature. Not how, just what. At this stage you want something like: create the feedback table, add the Business Rule that sets priority, build the notification flow, update the catalog item form. A clean list of tasks you can review before anything else happens.
+
+ 
+
+  PASS 1: TASK LIST
+
+  Example output:
+
+  ┌─────────────────────────────────────┐
+  │  1. Create incident_feedback table  │
+  │  2. Add Business Rule: set priority │
+  │  3. Build notification flow         │
+  │  4. Update catalog item form        │
+  └─────────────────────────────────────┘
+
+  Review here. Add, remove, reorder.
+  Nothing gets built yet.
+ 
+
+You can do this in plan mode, or just as a plain prompt: "Before writing any code, list all the tasks required to build this feature." Either way, the goal is a task list you've agreed with before you move on.
+
+ 
+
+Second pass: execution planning. Now go task by task and have Claude think through what it actually needs to do for each one. Which files get touched, what the dependencies are, what order things need to happen in. If a task turns out to be bigger than it looked in the list, you want to know that now, not halfway through step 4 with half-written logic scattered across your repo.
+
+ 
+
+  PASS 2: PER-TASK EXECUTION PLAN
+
+  For each task, Claude maps out:
+
+  ┌─────────────────────────────────────┐
+  │                                     │
+  │  Files to create or modify          │
+  │                                     │
+  │  Dependencies on other tasks        │
+  │                                     │
+  │  Order of operations                │
+  │                                     │
+  │  Risks and edge cases               │
+  │                                     │
+  └─────────────────────────────────────┘
+ 
+
+A useful prompt here: "For each task in the list, describe what files you'll create or modify, the dependencies, and any risks." Then read it. Look for gaps, weird sequences, anything that doesn't make sense given how your app is structured.
+
+ 
+
+  THE PROMPTS
+
+  Pass 1:
+  ┌─────────────────────────────────────┐
+  │  "Before writing any code, list     │
+  │   all the tasks required to build   │
+  │   this feature."                    │
+  └─────────────────────────────────────┘
+
+  Pass 2:
+  ┌─────────────────────────────────────┐
+  │  "For each task, describe what      │
+  │   files you'll create or modify,    │
+  │   the dependencies, and any risks." │
+  └─────────────────────────────────────┘
+ 
+
+Third: execute. Let it write code. By this point, Claude has done two rounds of thinking and you've reviewed both. The execution is sharper, the surprises are fewer, and when something goes sideways you know exactly where in the plan it happened.
+
+ 
+
+  WHY THIS WORKS
+
+  Two rounds of Claude thinking
+  Two rounds of you reviewing
+
+  ┌─────────────────────────────────────┐
+  │                                     │
+  │  ──>  Sharper execution             │
+  │                                     │
+  │  ──>  Fewer surprises               │
+  │                                     │
+  │  ──>  Easier to diagnose failures   │
+  │                                     │
+  └─────────────────────────────────────┘
+ 
+
+This doesn't slow you down. It trades a few minutes up front for a lot less cleanup on the back end.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Debugging with Claude Code
+ 
+
+
+ 
+
+Something broke. Good. That's where Claude Code actually shines.
+
+ 
+
+The first instinct most people have is to re-run the build and hope it works. Don't do that. Instead, take the error output and give it to Claude Code. Paste the full error, not a summary. Claude Code can parse stack traces, build logs, and deployment errors. The more detail you give it, the better its diagnosis.
+
+ 
+
+Here's my debugging workflow. Step one: paste the error. Literally copy the terminal output and drop it into the conversation. "I ran now-sdk build and got this error:" followed by the error text. Step two: add context about what you were doing. "I just added a new business rule to the requests table." That narrows the search space. Step three: let Claude Code investigate in plan mode. It'll read the relevant files, trace the issue, and propose a fix.
+
+ 
+
+  DEBUGGING WORKFLOW
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Paste the full error                │
+  │     (terminal output, not a summary)    │
+  │                                         │
+  │  2. Add context                         │
+  │     "I just added a business rule       │
+  │      to the requests table"             │
+  │                                         │
+  │  3. Let Claude Code investigate         │
+  │     It reads files, traces the issue,   │
+  │     proposes a fix                      │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+The most common build errors in SDK projects come down to a few things. Syntax errors in Fluent files, which Claude Code can spot immediately. Missing field references, where you reference a field in a business rule that doesn't exist on the table. And type mismatches, where a field is defined as one type but used as another.
+
+ 
+
+  COMMON BUILD ERRORS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Syntax errors in Fluent files          │
+  │  ──> Claude Code spots immediately      │
+  │                                         │
+  │  Missing field references               │
+  │  ──> Rule references a field that       │
+  │      doesn't exist on the table         │
+  │                                         │
+  │  Type mismatches                        │
+  │  ──> Field defined as one type,         │
+  │      used as another                    │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+For runtime issues (the app deploys but doesn't behave right), give Claude Code the symptoms. "Records are being created but the assignment rule isn't firing." Then let it read the rule, check the conditions, and trace the logic. It's good at this because it can hold the whole codebase in context at once, something that's genuinely hard to do manually when you've got tables, rules, and flows spread across a dozen files.
+
+ 
+
+  RUNTIME DEBUGGING
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Give symptoms, not guesses:            │
+  │                                         │
+  │  "Records are being created but the     │
+  │   assignment rule isn't firing"         │
+  │                                         │
+  │  Claude Code will:                      │
+  │  ├──> Read the rule                     │
+  │  ├──> Check conditions                  │
+  │  └──> Trace the logic                   │
+  │                                         │
+  │  It holds the whole codebase in         │
+  │  context at once                        │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+One tip that's saved me a lot of time: if a debugging conversation gets long and tangled, start a fresh one. Claude Code loads your CLAUDE.md at the start of every conversation, so you don't lose project context. But a fresh conversation means a clean slate for the debugging thread. No confusion from earlier attempts that didn't pan out.
+
+ 
+
+  CONVERSATION GOT TANGLED?
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Long debug thread                      │
+  │  + failed attempts                      │
+  │  + wrong turns                          │
+  │  = confused context                     │
+  │                                         │
+  │  Fix: start a new conversation          │
+  │                                         │
+  │  CLAUDE.md reloads automatically        │
+  │  Project context is preserved           │
+  │  Debug thread starts clean              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Another tip: use now-sdk build as your feedback loop. After Claude Code proposes a fix, build immediately. If it passes, you're good. If it fails again, paste the new error. This tight loop of fix, build, check keeps things moving. In fact, my workflow has skills that tells Claude Code to build after applying changes to verify the build is successful, and to fix things automatically if they aren't, since Claude will be seeing the terminal output directly anyways.
+
+ 
+
+  THE TIGHT LOOP
+
+  ┌──────────┐     ┌──────────┐
+  │ Claude   │     │ now-sdk  │
+  │ Code     ├────>│ build    │
+  │ fixes    │     │          │
+  └──────────┘     └─────┬────┘
+       ^                 │
+       │           ┌─────v────┐
+       │           │ Pass?    │
+       │           │          │
+       │    No     │  Yes ──> done
+       └───────────┘
+
+  Fix ──> build ──> check ──> repeat
+ 
+
+Anyways, don't spend twenty minutes staring at code trying to figure it out yourself. Paste the error. Give the context. Let the coding agent work.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Group 3: Git + Deploy
+ 
+
+Your app works locally. Now you need to get it version-controlled and onto an actual ServiceNow instance. This group covers the git workflow and the SDK's build and deploy commands.
+
+ 
+
+What is git
+ 
+
+
+ 
+
+Git shows up in just about every modern coding workflow. If you've never actually used it, the terminology can feel like everyone else got a memo you missed. Here's the two-minute crash course on git.
+
+ 
+
+Git is a snapshot tool. It saves your project at specific moments in time and lets you move between those moments. Every snapshot is called a commit. Commits stack up permanently. Nothing gets overwritten.
+
+ 
+
+  COMMITS = SNAPSHOTS
+
+  ┌───────────────────────────────────┐
+  │  "Added assignment rule"          │ ← latest
+  ├───────────────────────────────────┤
+  │  "Added feedback table"           │
+  ├───────────────────────────────────┤
+  │  "Initial project setup"          │ ← oldest
+  └───────────────────────────────────┘
+
+  Permanent. Nothing gets overwritten.
+ 
+
+Three zones to understand. The working tree is the files on your machine that you're actively editing. The staging area is a holding space for changes you want to include in your next snapshot. Committed history is the permanent record of every snapshot you've saved. Changes move through those zones in order: you edit in the working tree, stage the changes you care about, then commit to history.
+
+ 
+
+  WHERE YOUR CODE LIVES
+
+  ┌──────────────┐
+  │ Working tree │  ← you edit here
+  └──────┬───────┘
+         │ stage changes
+  ┌──────v───────┐
+  │ Staging area │  ← changes queued
+  └──────┬───────┘
+         │ commit
+  ┌──────v───────┐
+  │  History     │  ← permanent record
+  └──────────────┘
+ 
+
+All of that lives on your machine.
+
+ 
+
+GitHub or Gitlab or BitBucket is separate. There are remote hosts. It stores a copy of your commit history in the cloud, which gives you a backup and the ability to sync code across machines. When you push code to GitHub, you're sending your local history to that remote copy.
+
+ 
+
+  TWO DIFFERENT THINGS
+
+  ┌──────────────────┐     push      ┌──────────────┐
+  │  Your machine    ├─────────────> │   GitHub     │
+  │                  │               │              │
+  │  git             │ <──────────── │  remote copy │
+  │  (local history) │     pull      │  (backup)    │
+  └──────────────────┘               └──────────────┘
+
+  git   = version control tool
+  GitHub = remote host for your history
+ 
+
+So keep this mental model: git tracks your project history locally. GitHub stores and shares that history remotely.
+
+ 
+
+All of this matter because your commit history is your audit trail. If something breaks, you can look back and see exactly what changed and when. If you introduce a bug, you can roll back to a working state. The further you get into a project without that safety net, the more it hurts when something goes sideways.
+
+ 
+
+And if you have an audit trail, that means your coding agent also has an audit trail.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Setting up git
+ 
+
+
+ 
+
+Run git --version in your terminal. If you see a version number, you're good. If you get "command not found," go to git-scm.com and install it. The installation defaults are fine for most setups.
+
+ 
+
+Once git is installed, you have two config values to set. Your name and your email. These get stamped onto every commit you make, so set them once and forget them:
+
+ 
+
+  GIT SETUP: STEP 1
+
+  Check install:
+  $ git --version
+    ──> 2.x.x  (good)
+    ──> not found  (install at git-scm.com)
+
+  Set your identity (do once):
+  $ git config --global user.name "..."
+  $ git config --global user.email "..."
+
+  Stamped on every commit you make
+ 
+
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+ 
+
+The --global flag means this applies across every repo on your machine, not just the current project.
+
+ 
+
+Next: GitHub CLI authentication. Run gh auth login. This is worth doing through gh rather than setting up raw SSH keys or personal access tokens because Claude Code uses the same GitHub CLI to interact with GitHub on your behalf. Authenticate once, and both you and Claude Code can push code, create repos, and open pull requests without any additional credential setup.
+
+ 
+
+  GIT SETUP: STEP 2
+
+  $ gh auth login
+
+  ┌─────────────────────────────────┐
+  │ What account do you want to     │
+  │ log into?                       │
+  │ > GitHub.com                    │
+  ├─────────────────────────────────┤
+  │ What is your preferred protocol │
+  │ > HTTPS                         │
+  ├─────────────────────────────────┤
+  │ Opens browser for auth          │
+  └─────────────────────────────────┘
+
+  Claude Code uses this same CLI
+ 
+
+The auth flow will open a browser window. Select GitHub.com, pick HTTPS, and follow the prompts. Done.
+
+ 
+
+Windows developers: here's a gotcha to know about. Git has a setting called core.autocrlf that tries to manage line endings automatically. In practice it creates noise in your diffs, especially when the SDK regenerates TypeScript files. The cleaner fix is a .gitattributes file at your project root.
+
+ 
+
+  LINE ENDINGS (Windows)
+
+  Problem:
+  core.autocrlf adds noise to diffs
+  when SDK regenerates TypeScript
+
+  Fix: add .gitattributes at root
+
+  ┌─────────────────────────────────┐
+  │  # .gitattributes               │
+  │  * text=auto eol=lf             │
+  │  src/fluent/generated/*.ts  lf  │
+  └─────────────────────────────────┘
+
+  Explicit beats automatic
+ 
+
+Add * text=auto eol=lf to normalize everything to LF. If you're working with generated TypeScript (the SDK produces these), add an explicit rule pinning those files to LF as well. That way, regenerating SDK outputs won't flood your diff with line-ending changes that aren't real code changes.
+
+ 
+
+Now smoke-test the whole chain. From inside your SDK project directory, run gh repo view. If you haven't created a GitHub remote yet, it'll say no remote is set, and that's fine. The point is that the command responds without an authentication error. If it does throw an auth error, gh auth status will tell you what's wrong.
+
+ 
+
+  GIT SETUP: SMOKE TEST
+
+  From your SDK project directory:
+
+  $ gh repo view
+    ──> Shows repo info  (perfect)
+    ──> "no remote set"  (fine, normal)
+    ──> auth error       (run: gh auth status)
+
+  If no remote yet:
+  $ gh repo create my-app --public
+  $ git remote add origin <url>
+ 
+
+That's the setup. Git is tracking your code, your identity is on your commits, and the GitHub CLI is ready to go. Next episode is the day-to-day loop: committing your changes and pushing to GitHub.
+
+ 
+
+  SETUP CHECKLIST
+
+  ┌─────────────────────────────────┐
+  │                                 │
+  │  git --version      ✓ installed │
+  │                                 │
+  │  git config         ✓ identity  │
+  │  --global                       │
+  │                                 │
+  │  gh auth login      ✓ GitHub    │
+  │                       connected │
+  │                                 │
+  │  .gitattributes     ✓ line      │
+  │  (Windows)            endings   │
+  │                                 │
+  └─────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+GitHub commit and push
+ 
+
+Coming soon, I'm making these videos in batches.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Branches
+ 
+
+Coming soon, I'm making these videos in batches.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Pull requests
+ 
+
+Coming soon, I'm making these videos in batches.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Work trees
+ 
+
+Coming soon, I'm making these videos in batches.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+Rolling back when needed
+ 
+
+Coming soon, I'm making these videos in batches.
+
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+SDK build + deploy
+ 
+
+
+ 
+
+You've written the app. Time to ship it. The build and deploy flow comes down to two commands.
+
+ 
+
+now-sdk build compiles your Fluent source into a deployable package
+now-sdk deploy pushes that package to your instance
+ 
+
+That's the core loop: write code, build, deploy, check.
+
+ 
+
+  BUILD AND DEPLOY
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  $ now-sdk build                        │
+  │                                         │
+  │    Compiles Fluent source               │
+  │    Generates ATF tests                  │
+  │    Runs readiness scan                  │
+  │                                         │
+  │  $ now-sdk deploy                       │
+  │                                         │
+  │    Pushes package to your instance      │
+  │    App appears in Studio                │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Here's what happens during now-sdk build:
+
+ 
+
+The SDK takes your Fluent source files and compiles them into the app artifacts your instance expects
+It generates ATF tests alongside those artifacts, so you've got test coverage from the start
+It runs a readiness scan, which catches common issues before you even try to deploy
+ 
+
+If something's off, you'll know at build time, not after it's on your instance.
+
+ 
+
+  BUILD OUTPUT
+
+  Fluent source
+       │
+       v
+  ┌──────────────────┐
+  │ App artifacts    │
+  │ (tables, rules,  │
+  │  scripts, flows) │
+  ├──────────────────┤
+  │ ATF tests        │
+  │ (auto-generated) │
+  ├──────────────────┤
+  │ Readiness scan   │
+  │ (issues caught   │
+  │  before deploy)  │
+  └──────────────────┘
+ 
+
+On deploy, your app lands in your instance and shows up in ServiceNow Studio under your app list, just like any other scoped app. From the platform's perspective, there's nothing special about it. It's a native scoped application.
+
+ 
+
+Post-deploy checklist:
+
+ 
+
+Open Studio, find your app, and confirm the scope and tables look right
+Click into a table or two and make sure the fields are there with the types you expected
+If your app includes agents, open AI Control Tower and confirm they're registered
+Create a test record and make sure rules fire as expected
+ 
+
+  POST-DEPLOY CHECKLIST
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Open Studio                         │
+  │     Find your app in the app list       │
+  │                                         │
+  │  2. Check scope and tables              │
+  │     Verify the data model looks right   │
+  │                                         │
+  │  3. Open AI Control Tower               │
+  │     Confirm agents are registered       │
+  │     (if your app includes agents)       │
+  │                                         │
+  │  4. Sanity-check a record               │
+  │     Create a test record, make sure     │
+  │     rules fire as expected              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+If deploy fails, check these first:
+
+ 
+
+Credential mismatch: The most common cause. If you followed the credentials episode, you've already tested this. If you skipped ahead, go back to that episode and walk through the setup.
+Instance version: Your instance might not support the features your app uses.
+Scope conflict: Another app with the same scope already exists on the instance.
+ 
+
+  DEPLOY FAILED? CHECK THESE
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  1. Credential mismatch                 │
+  │     Token in credential record must     │
+  │     match token in your tool            │
+  │     (see credentials episode)           │
+  │                                         │
+  │  2. Instance version                    │
+  │     Does your instance support the      │
+  │     features your app uses?             │
+  │                                         │
+  │  3. Scope conflict                      │
+  │     Another app with the same scope     │
+  │     already exists on the instance      │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+One thing worth being upfront about: full test pipelines from external IDEs are still evolving. Build and deploy from your terminal works great. But complex CI/CD workflows that run entirely outside the platform aren't fully there yet. I've had good success using branches within git in my terminal, though. This will get better, and I'll update the series when it does.
+
+ 
+
+  WHAT'S STILL EVOLVING
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Works today:                           │
+  │    Build + deploy from your terminal    │
+  │                                         │
+  │  Still in progress:                     │
+  │    Full CI/CD pipelines from            │
+  │      external tools                     │
+  │    Branch management from               │
+  │      outside the platform               │
+  │                                         │
+  │  For branching:                         │
+  │    Use Source Control in Studio          │
+  │    or GitHub directly                   │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+↑ Return to Table of Contents
+
+ 
+
+now-sdk command aliases: create, init, deploy, install
+ 
+
+
+ 
+
+Quick one. If you've been following this series and typing now-sdk deploy, you've been typing my habit, not the canonical command. The actual command is now-sdk install. deploy is an alias. They do exactly the same thing.
+
+ 
+
+  ALIASED COMMANDS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Project creation                       │
+  │  ├── now-sdk init      (canonical)      │
+  │  └── now-sdk create    (alias)          │
+  │                                         │
+  │  Push to instance                       │
+  │  ├── now-sdk install   (canonical)      │
+  │  └── now-sdk deploy    (alias)          │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+Same deal with creating a new project. You'll see both now-sdk init and now-sdk create in the wild. Aliases. Same command, two names. If you've been watching tutorials or comparing notes with a teammate and saw a command that didn't match what you've been typing, that's almost certainly what happened.
+
+ 
+
+Why does this exist? CLI tools ship aliases basically to meet people where they are. Someone coming from a Docker or Kubernetes workflow types deploy instinctively. Someone else thinks install because that's the operation that's actually happening on the instance. Both groups are right, so both commands work. No penalty for using either one.
+
+ 
+
+  WHY ALIASES EXIST
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Docker/K8s background?                 │
+  │    "deploy" feels natural               │
+  │                                         │
+  │  Thinking about the instance?           │
+  │    "install" describes the operation    │
+  │                                         │
+  │  Both work. No difference.              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+I used deploy in earlier episodes because that's the word that maps to my mental model. You're pushing code somewhere, "deploy" feels right to me. But if you're writing scripts, documentation, or any kind of shared tooling, install is the name to anchor to. It's what the help docs reference, and it's the one that'll stay stable if aliases ever get cleaned up in a future version.
+
+ 
+
+  WHEN IT MATTERS
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  Typing in your terminal?               │
+  │    Use whichever you prefer             │
+  │                                         │
+  │  Writing scripts or CI steps?           │
+  │    Use the canonical name               │
+  │    now-sdk install                      │
+  │    now-sdk init                         │
+  │                                         │
+  │  Team docs / READMEs?                   │
+  │    Pick one, be consistent              │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+For project creation, init is the canonical one. create works just as well, and I've seen both used in examples. Pick one, use it consistently across your team, don't sweat the choice.
+
+ 
+
+some commands like now-sdk build don't have any aliases so that's the only one you'll use for initiating builds.
+
+ 
+
+if you see a command in someone's terminal that doesn't match what you've been typing, run now-sdk --help before assuming something's different. You'll see both names listed together.
+
+ 
+
+  VERIFY WITH --help
+
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │  $ now-sdk --help                       │
+  │                                         │
+  │    init, create    Initialize project   │
+  │    install, deploy Push to instance     │
+  │                                         │
+  │  Both names listed for each command     │
+  │                                         │
+  └─────────────────────────────────────────┘
+ 
+
+That's the whole episode. A heads-up so you're not confused when the commands don't match.
+
+ 
