@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false,
+    "suppressImplicitAnyIndexErrors": true
+  }
+}
