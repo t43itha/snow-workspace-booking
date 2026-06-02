@@ -49,12 +49,16 @@ now-sdk deploy
 ```
 
 ### 3. Connect this repo to GitHub
+This repo is already `git init`'d on `main` with all files staged. Set your
+identity, make the first commit, then push (create an empty GitHub repo first —
+no README/.gitignore/license):
 ```powershell
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.com"
+git commit -m "Initial commit: SDK + Copilot project setup"
 git remote add origin https://github.com/<you>/servicenow-workspace-booking.git
-git branch -M main
 git push -u origin main
 ```
-Create the empty GitHub repo first (no README/.gitignore/license).
 
 > Note: a GitHub Personal Access Token + ServiceNow credential record is only
 > needed for **Studio** Source Control. With the SDK + git workflow used here,
